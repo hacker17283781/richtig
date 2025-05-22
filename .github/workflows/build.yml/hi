@@ -1,0 +1,33 @@
+name: Build ZMK Firmware
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: sudo apt update && sudo apt install -y cmake ninja-build gperf python3-dev python3-pip python3-setuptools
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install West and requirements
+        run: |
+          pip install west
+          west init -l config
+          west update
+          west zephyr-export
+          pip install -r zmk/app/zephyr/scripts/requirements.txt
+      - name: Build firmware
+        run: |
+          west build -s zmk/app -d build -b mikoto -- -DSHIELD=dumbpad
+      - name: Upload firmware
+        uses: actions/upload-artifact@v3
+        with:
+          name: firmware
+          path: build/zephyr/zmk.uf2
